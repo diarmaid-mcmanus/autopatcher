@@ -2,6 +2,7 @@ import androguard
 from androguard.core.bytecodes import apk
 from androguard.core.bytecodes.dvm import DalvikVMFormat
 import argparse
+import shutil
 import subprocess
 import xml.etree.ElementTree as etree
 from subprocess import PIPE as SPIPE
@@ -21,8 +22,6 @@ jarsigner_sign = ["jarsigner", "-verbose", "-sigalg", "SHA1withRSA",
     input_file + "-debug.apk", "autopatcher-keystore" ]
 attack_surface = [ 'activity', 'service', 'receiver', 'provider' ]
 
-
-
 # TODO verify properly signed apk
 # Shouldn't I be able to do this with Androguard?
 
@@ -40,6 +39,9 @@ manifest_file.write(input_file + '/AndroidManifest.xml', encoding="unicode")
 subprocess.run(apktool_build, stdout=SPIPE, stderr=SPIPE)
 # this doesn't align the zip because we're not releasing it.
 subprocess.run(jarsigner_sign, stdout=SPIPE, stderr=SPIPE)
+
+# Set up the code for intellij
+shutil.copytree('idea-workspace', input_file + '/.idea')
 
 # Step two: do static analysis using androguard
 apkf = apk.APK(apk_file)
