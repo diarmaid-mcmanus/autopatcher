@@ -1,19 +1,27 @@
 import androguard
 from androguard.core.bytecodes import apk
 from androguard.core.bytecodes.dvm import DalvikVMFormat
+import argparse
 import subprocess
-import time
 import xml.etree.ElementTree as etree
 from subprocess import PIPE as SPIPE
 
-apk_file = "example.apk"
+parser = argparse.ArgumentParser(description='Perform static patching & analysis of an Android apk')
+parser.add_argument('file', type=str, nargs=1, metavar='filename', help='the file to operate on')
+args = parser.parse_args()
+input_file = args.file[0]
+
+# setup
+apk_file = input_file + ".apk"
 debuggable_attribute = "{http://schemas.android.com/apk/res/android}debuggable"
 apktool_decode = ["apktool", "d", apk_file ]
-apktool_build = ["apktool", "b", "example", "-oexample-debug.apk"]
+apktool_build = ["apktool", "b", input_file, "-o" + input_file + "-debug.apk"]
 jarsigner_sign = ["jarsigner", "-verbose", "-sigalg", "SHA1withRSA", 
     "-digestalg", "SHA1", "-keystore", "autopatcher.jks", "-storepass", "password",
-    "example-debug.apk", "autopatcher-keystore" ]
+    input_file + "-debug.apk", "autopatcher-keystore" ]
 attack_surface = [ 'activity', 'service', 'receiver', 'provider' ]
+
+
 
 # TODO verify properly signed apk
 # Shouldn't I be able to do this with Androguard?
@@ -21,13 +29,13 @@ attack_surface = [ 'activity', 'service', 'receiver', 'provider' ]
 # Step one : make APK debuggable, sign it
 subprocess.run(apktool_decode, stdout=SPIPE, stderr=SPIPE)
 
-manifest_file = etree.parse('example/AndroidManifest.xml')
+manifest_file = etree.parse(input_file + '/AndroidManifest.xml')
 
 for child in manifest_file.getroot():
     if child.tag == "application":
         child.attrib[debuggable_attribute] = 'true'
 
-manifest_file.write('example/AndroidManifest.xml', encoding="unicode")
+manifest_file.write(input_file + '/AndroidManifest.xml', encoding="unicode")
 
 subprocess.run(apktool_build, stdout=SPIPE, stderr=SPIPE)
 # this doesn't align the zip because we're not releasing it.
